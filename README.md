@@ -11,12 +11,12 @@ A production-style **Retrieval-Augmented Generation (RAG) system** combining:
 
 ---
 
-## 🧠 Architecture
+##  Architecture
 
 
 ---
 
-## ⚙️ Tech Stack
+## Tech Stack
 
 - Python
 - FastAPI
@@ -29,7 +29,7 @@ A production-style **Retrieval-Augmented Generation (RAG) system** combining:
 
 ---
 
-## 📦 Features
+##  Features
 
 ✔ Automatic arXiv paper ingestion  
 ✔ ETL data pipeline  
@@ -41,7 +41,7 @@ A production-style **Retrieval-Augmented Generation (RAG) system** combining:
 
 ---
 
-## 🚀 How to Run
+##  How to Run
 
 ```bash
 # install dependencies
@@ -49,3 +49,16 @@ pip install -r requirements.txt
 
 # run API
 uvicorn api.main:app --reload
+
+
+##  Future Improvements
+
+- Add LangChain agents
+- Improve RAG ranking
+- Deploy on cloud (AWS / Render)
+- Add authentication
+
+
+##  Author
+
+Student in AI & Data Engineering
