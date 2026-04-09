@@ -5,7 +5,8 @@ import os
 
 BASE_URL = "http://export.arxiv.org/api/query"
 
-def fetch_arxiv(query="machine learning", max_results=10):
+def fetch_arxiv(query="transformer NLP attention BERT GPT", max_results=100):
+
 
     url = f"{BASE_URL}?search_query=all:{query}&start=0&max_results={max_results}"
 
@@ -42,5 +43,23 @@ def save_to_json(papers, filename="data_pipeline/arxiv_data.json"):
 
 
 if __name__ == "__main__":
-    papers = fetch_arxiv("deep learning", 20)
+    papers = fetch_arxiv(
+        "transformer NLP attention BERT GPT machine translation",
+        100
+    )
+
+    # FILTER NLP-RELEVANT PAPERS
+    papers = [
+        p for p in papers
+        if is_nlp_related(p["title"] + p["summary"])
+    ]
+
     save_to_json(papers)
+
+
+def is_nlp_related(text):
+    keywords = [
+        "transformer", "attention", "nlp",
+        "bert", "gpt", "language"
+    ]
+    return any(k in text.lower() for k in keywords)
