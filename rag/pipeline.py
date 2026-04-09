@@ -1,119 +1,90 @@
-import os
-from dotenv import load_dotenv
-from openai import OpenAI
-
 from vector_db.auto_index import load_all
 from vector_db.hybrid_search import hybrid_search
 from vector_db.reranker import rerank
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
 
 load_dotenv()
+CHAT_MEMORY = []
 
-# ------------------------
-# LLM CLIENT (GROQ)
-# ------------------------
+
+def add_to_memory(role, message):
+    CHAT_MEMORY.append({"role": role, "content": message})
+
+
+def get_memory():
+    return CHAT_MEMORY[-6:]  # last 6 messages
+
 client = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
 )
 
-# ------------------------
-# LOAD DATA ONCE
-# ------------------------
 faiss_index, chunks, bm25 = load_all()
 
 
-# ------------------------
-# QUERY REWRITE (optional upgrade)
-# ------------------------
-def expand_query(query: str):
+def expand_query(query):
     return [
         query,
         f"Explain {query} in NLP context",
-        f"What is the concept of {query}",
+        f"{query} transformer attention mechanism",
         f"{query} deep learning explanation",
-        f"{query} transformer attention relevance"
+        f"What is {query} in AI research"
     ]
 
-def deduplicate(docs):
-    return list(dict.fromkeys(docs))
 
-
-def compress_context(docs):
-    return "\n".join([d[:300] for d in docs])
-
-def rewrite_query(query: str) -> str:
-    return f"NLP transformer attention information: {query}"
-
-
-# ------------------------
-# RETRIEVAL (HYBRID + RERANK)
-# ------------------------
 def retrieve_context(query):
 
-    # 1. Multi-query expansion
     queries = expand_query(query)
 
-    all_candidates = []
-
-    # 2. Hybrid search for EACH query
-    for q in queries:
-        candidates = hybrid_search(
-            queries=[q],
-            faiss_index=faiss_index,
-            bm25=bm25,
-            chunks=chunks,
-            top_k=10
-        )
-        all_candidates.extend(candidates)
-
-    # 3. Deduplicate results
-    candidates = deduplicate(all_candidates)
-
-    # 4. Rerank (GPT-style ranking)
-    top_docs = rerank(
-        query=query,
-        documents=candidates,
-        top_k=6
+    candidates = hybrid_search(
+        queries=queries,
+        faiss_index=faiss_index,
+        bm25=bm25,
+        chunks=chunks,
+        top_k=15
     )
 
-    return top_docs
+    return rerank(query, candidates, top_k=6)
 
 
-# ------------------------
-# PROMPT ENGINE (IMPORTANT)
-# ------------------------
 def build_prompt(query, contexts):
 
+    memory_text = "\n".join(
+        [f"{m['role']}: {m['content']}" for m in get_memory()]
+    )
+
+    context_text = "\n\n".join(contexts)
+
     return f"""
-You are a GPT-4 level AI research assistant.
+You are ChatGPT-level AI assistant.
 
-Your job:
-- Answer ONLY using provided context
-- Think step-by-step internally
-- If information is missing, say:
-  "I don't know based on provided documents"
+Conversation memory:
+{memory_text}
 
-CONTEXT:
-{contexts}
+Context:
+{context_text}
 
-QUESTION:
+User question:
 {query}
 
-ANSWER:
-Provide a clear, structured, technical explanation.
+Rules:
+- Use memory + context
+- Be natural like ChatGPT
+- If unsure say "I don't know"
+
+Answer:
 """
 
 
-# ------------------------
-# MAIN GENERATION
-# ------------------------
 def generate_answer(query: str):
+
+    add_to_memory("user", query)
 
     contexts = retrieve_context(query)
 
-    context_text = compress_context(contexts)
-
-    prompt = build_prompt(query, context_text)
+    prompt = build_prompt(query, contexts)
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
@@ -121,19 +92,18 @@ def generate_answer(query: str):
         temperature=0.2
     )
 
+    answer = response.choices[0].message.content
+
+    add_to_memory("assistant", answer)
+
     return {
-        "answer": response.choices[0].message.content,
+        "answer": answer,
         "sources": contexts
     }
-
-
-# ------------------------
-# STREAM (Streamlit UI)
-# ------------------------
 def generate_stream(query: str):
 
     result = generate_answer(query)
     answer = result["answer"]
 
-    for word in answer.split():
-        yield word + " "
+    for token in answer.split():
+        yield token + " "

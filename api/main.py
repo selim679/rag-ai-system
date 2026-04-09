@@ -1,16 +1,16 @@
 from fastapi import FastAPI
-from api.routes import chat, search, ingest
 
-app = FastAPI(
-    title="RAG AI System",
-    description="Production-ready RAG API (FAISS + BM25 + Rerank + LLM)",
-    version="1.0"
-)
+from api.routes.chat import router as chat_router
+from api.routes.search import router as search_router
+from api.routes.ingest import router as ingest_router
 
-app.include_router(chat.router)
-app.include_router(search.router)
-app.include_router(ingest.router)
+app = FastAPI(title="Production RAG System")
 
-@app.get("/health")
-def health():
-    return {"status": "ok", "message": "RAG system is running 🚀"}
+app.include_router(chat_router)
+app.include_router(search_router)
+app.include_router(ingest_router)
+
+
+@app.get("/")
+def root():
+    return {"status": "RAG API is running 🚀"}

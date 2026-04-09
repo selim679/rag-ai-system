@@ -1,15 +1,15 @@
-from rag.pipeline import generate_answer, retrieve_context
+from rag.pipeline import generate_answer
 
+# MAIN CHAT ENDPOINT
 def chat_with_rag(query: str):
+    return generate_answer(query)
 
+
+# 🔥 ADD THIS (MISSING FUNCTION)
+def search_only(query: str):
     result = generate_answer(query)
 
     return {
-        "answer": result["answer"],
+        "query": query,
         "sources": result["sources"]
     }
-
-
-def search_only(query: str):
-
-    return retrieve_context(query)
