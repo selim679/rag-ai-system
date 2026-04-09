@@ -25,6 +25,22 @@ faiss_index, chunks, bm25 = load_all()
 # ------------------------
 # QUERY REWRITE (optional upgrade)
 # ------------------------
+def expand_query(query: str):
+    return [
+        query,
+        f"Explain {query} in NLP context",
+        f"What is the concept of {query}",
+        f"{query} deep learning explanation",
+        f"{query} transformer attention relevance"
+    ]
+
+def deduplicate(docs):
+    return list(dict.fromkeys(docs))
+
+
+def compress_context(docs):
+    return "\n".join([d[:300] for d in docs])
+
 def rewrite_query(query: str) -> str:
     return f"NLP transformer attention information: {query}"
 
@@ -32,20 +48,28 @@ def rewrite_query(query: str) -> str:
 # ------------------------
 # RETRIEVAL (HYBRID + RERANK)
 # ------------------------
-def retrieve_context(query: str):
+def retrieve_context(query):
 
-    query = rewrite_query(query)
+    # 1. Multi-query expansion
+    queries = expand_query(query)
 
-    # 1. Hybrid search
-    candidates = hybrid_search(
-        queries=[query],      # IMPORTANT: list
-        faiss_index=faiss_index,
-        bm25=bm25,
-        chunks=chunks,
-        top_k=20
-    )
+    all_candidates = []
 
-    # 2. Reranking (Cross-Encoder)
+    # 2. Hybrid search for EACH query
+    for q in queries:
+        candidates = hybrid_search(
+            queries=[q],
+            faiss_index=faiss_index,
+            bm25=bm25,
+            chunks=chunks,
+            top_k=10
+        )
+        all_candidates.extend(candidates)
+
+    # 3. Deduplicate results
+    candidates = deduplicate(all_candidates)
+
+    # 4. Rerank (GPT-style ranking)
     top_docs = rerank(
         query=query,
         documents=candidates,
@@ -58,27 +82,25 @@ def retrieve_context(query: str):
 # ------------------------
 # PROMPT ENGINE (IMPORTANT)
 # ------------------------
-def build_prompt(query: str, contexts: list):
-
-    context_text = "\n\n".join(contexts)
+def build_prompt(query, contexts):
 
     return f"""
-You are a ChatGPT-level AI research assistant.
+You are a GPT-4 level AI research assistant.
 
-RULES:
-- Use ONLY the provided context
-- If the answer is not in the context, say:
-  "I don't know based on the provided documents"
-- Do NOT use external knowledge
-- Be precise, technical, and structured
+Your job:
+- Answer ONLY using provided context
+- Think step-by-step internally
+- If information is missing, say:
+  "I don't know based on provided documents"
 
 CONTEXT:
-{context_text}
+{contexts}
 
 QUESTION:
 {query}
 
 ANSWER:
+Provide a clear, structured, technical explanation.
 """
 
 
@@ -88,13 +110,14 @@ ANSWER:
 def generate_answer(query: str):
 
     contexts = retrieve_context(query)
-    prompt = build_prompt(query, contexts)
+
+    context_text = compress_context(contexts)
+
+    prompt = build_prompt(query, context_text)
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
+        messages=[{"role": "user", "content": prompt}],
         temperature=0.2
     )
 
