@@ -205,3 +205,25 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+.env
+venv/
+__pycache__/
+# environment variables
+.env
+
+# python cache
+__pycache__/
+*.pyc
+
+# virtual environment
+venv/
+
+# FAISS index files (optional but recommended)
+index/
+*.index
+*.pkl
+
+# system files
+.DS_Store
