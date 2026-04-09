@@ -15,4 +15,4 @@ index = build_faiss_index(embeddings)
 save_index(index)
 save_chunks()
 
-print("✅ INDEX BUILT SUCCESSFULLY")
+print("INDEX BUILT SUCCESSFULLY")

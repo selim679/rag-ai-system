@@ -4,4 +4,4 @@ app = FastAPI(title="RAG AI System")
 
 @app.get("/")
 def home():
-    return {"message": "RAG System is running 🚀"}
+    return {"message": "RAG System is running "}

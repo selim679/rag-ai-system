@@ -1,4 +1,7 @@
-from vector_db.faiss_index import load_index, load_chunks, semantic_search
+from vector_db.auto_index import load_all
+from vector_db.hybrid_search import hybrid_search
+from vector_db.reranker import rerank
+
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
@@ -10,21 +13,31 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-index = load_index()
-chunks = load_chunks()
+# AUTO LOAD SYSTEM
+faiss_index, chunks, bm25 = load_all()
+
 
 def retrieve_context(query):
-    return semantic_search(query, index, chunks, top_k=3)
+
+    # 1. hybrid search
+    candidates = hybrid_search(query, faiss_index, bm25, chunks, top_k=10)
+
+    # 2. rerank
+    final_docs = rerank(query, candidates, top_k=3)
+
+    return final_docs
+
 
 def generate_answer(query):
 
     contexts = retrieve_context(query)
+
     context_text = "\n\n".join(contexts)
 
     prompt = f"""
-You are an AI assistant.
+You are an AI research assistant.
 
-Use ONLY the context below.
+Answer ONLY using context.
 
 CONTEXT:
 {context_text}

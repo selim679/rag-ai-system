@@ -66,14 +66,17 @@ def load_chunks():
 # SEARCH
 # -------------------------
 def semantic_search(query, index, chunks, top_k=3):
-    query_vec = MODEL.encode([query]).astype("float32")
-    faiss.normalize_L2(query_vec)
 
-    _, indices = index.search(query_vec, top_k)
+    query_vector = MODEL.encode([query]).astype("float32")
+    faiss.normalize_L2(query_vector)
+
+    distances, indices = index.search(query_vector, top_k)
 
     results = []
+
     for idx in indices[0]:
         if idx < len(chunks):
             results.append(chunks[idx])
 
     return results
+
