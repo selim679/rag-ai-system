@@ -1,7 +1,5 @@
 def chunk_text(text, size=300, overlap=50):
-
     sentences = text.split(". ")
-
     chunks = []
     chunk = ""
 

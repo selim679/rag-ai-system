@@ -48,13 +48,26 @@ if __name__ == "__main__":
         100
     )
 
-    # FILTER NLP-RELEVANT PAPERS
+    # FILTER NLP PAPERS
+    def is_nlp_related(text):
+       keywords = [
+        "transformer", "attention", "nlp", "bert", "gpt",
+        "language", "translation", "token", "sequence"
+        ]
+       text = text.lower()
+       return any(k in text for k in keywords)
+
+
+    papers = fetch_arxiv("transformer NLP attention BERT GPT", 100)
+
     papers = [
-        p for p in papers
-        if is_nlp_related(p["title"] + p["summary"])
+       p for p in papers
+       if is_nlp_related(p["title"] + " " + p["summary"])
     ]
 
     save_to_json(papers)
+
+
 
 
 def is_nlp_related(text):
