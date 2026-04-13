@@ -10,3 +10,8 @@ streamlit
 requests
 ragas
 apache-airflow
+sentence-transformers
+rank-bm25
+torch
+transformers
+numpy
